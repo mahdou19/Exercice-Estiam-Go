@@ -1,5 +1,7 @@
 package dictionary
 
+import "errors"
+
 type Entry struct {
 	Word       string
 	Definition string
@@ -33,4 +35,12 @@ func (d *Dictionary) List() []Entry {
 
 func (d *Dictionary) Remove(word string) {
 	delete(d.entries, word)
+}
+
+func (d *Dictionary) Get(word string) (Entry, error) {
+	entry, found := d.entries[word]
+	if !found {
+		return Entry{}, errors.New("Mot not trouver")
+	}
+	return entry, nil
 }

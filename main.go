@@ -21,7 +21,7 @@ func main() {
 			actionAdd(dict, scanner)
 
 		} else if entreeUtilisateur == "define" {
-			fmt.Println(entreeUtilisateur)
+			actionDefine(dict, scanner)
 
 		} else if entreeUtilisateur == "list" {
 			actionList(dict)
@@ -47,7 +47,18 @@ func actionAdd(d *dictionary.Dictionary, scanner *bufio.Scanner) {
 	fmt.Println("le mot < ", word, " > est ajouté.")
 }
 
-func actionDefine(d *dictionary.Dictionary, reader *bufio.Reader) {
+func actionDefine(d *dictionary.Dictionary, scanner *bufio.Scanner) {
+	fmt.Print("Entrez le mot à cherché : ")
+	scanner.Scan()
+	word := scanner.Text()
+
+	entry, err := d.Get(word)
+	if err != nil {
+		fmt.Println("Word not found.")
+		return
+	}
+
+	fmt.Printf("La définition est : %s\n", entry.Definition)
 
 }
 
