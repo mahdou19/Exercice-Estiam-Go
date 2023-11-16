@@ -30,3 +30,7 @@ func (d *Dictionary) List() []Entry {
 	}
 	return entryList
 }
+
+func (d *Dictionary) Remove(word string) {
+	delete(d.entries, word)
+}

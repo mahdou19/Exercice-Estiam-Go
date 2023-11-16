@@ -26,7 +26,7 @@ func main() {
 		} else if entreeUtilisateur == "list" {
 			actionList(dict)
 		} else if entreeUtilisateur == "remove" {
-			fmt.Println(entreeUtilisateur)
+			actionRemove(dict, scanner)
 		} else {
 			fmt.Println("Entrez Non valide ! Choisisser dans cette liste: (add, define, list ou remove) : ")
 		}
@@ -51,8 +51,13 @@ func actionDefine(d *dictionary.Dictionary, reader *bufio.Reader) {
 
 }
 
-func actionRemove(d *dictionary.Dictionary, reader *bufio.Reader) {
+func actionRemove(d *dictionary.Dictionary, scanner *bufio.Scanner) {
+	fmt.Print("Entrer le mot à supprimé du dictionnaire : ")
+	scanner.Scan()
+	word := scanner.Text()
 
+	d.Remove(word)
+	fmt.Printf("%s estsupprimé du dictionnaire.\n", word)
 }
 
 func actionList(d *dictionary.Dictionary) {
