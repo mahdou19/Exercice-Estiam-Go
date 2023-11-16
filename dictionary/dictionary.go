@@ -1,12 +1,12 @@
 package dictionary
 
 type Entry struct {
-	word       string
-	definition string
+	Word       string
+	Definition string
 }
 
 func (e Entry) String() string {
-	return e.word + ":" + e.definition
+	return e.Word + ":" + e.Definition
 }
 
 type Dictionary struct {
@@ -20,5 +20,13 @@ func NewDictionary() *Dictionary {
 }
 
 func (d *Dictionary) Add(word string, definition string) {
-	d.entries[word] = Entry{definition: definition}
+	d.entries[word] = Entry{Word: word, Definition: definition}
+}
+
+func (d *Dictionary) List() []Entry {
+	var entryList []Entry
+	for _, entry := range d.entries {
+		entryList = append(entryList, entry)
+	}
+	return entryList
 }

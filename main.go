@@ -22,8 +22,9 @@ func main() {
 
 		} else if entreeUtilisateur == "define" {
 			fmt.Println(entreeUtilisateur)
+
 		} else if entreeUtilisateur == "list" {
-			fmt.Println(entreeUtilisateur)
+			actionList(dict)
 		} else if entreeUtilisateur == "remove" {
 			fmt.Println(entreeUtilisateur)
 		} else {
@@ -55,5 +56,14 @@ func actionRemove(d *dictionary.Dictionary, reader *bufio.Reader) {
 }
 
 func actionList(d *dictionary.Dictionary) {
+	entries := d.List()
+	if len(entries) == 0 {
+		fmt.Println("Le dictionaire est vide !")
+		return
+	}
 
+	fmt.Println("Liste du dictionaire")
+	for _, entry := range entries {
+		fmt.Printf("- %s: %s \n", entry.Word, entry.Definition)
+	}
 }
