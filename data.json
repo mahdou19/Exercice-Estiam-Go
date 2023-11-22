@@ -1,1 +1,10 @@
-{"mot":{"word":"mot","definition":"motttt"},"test":{"word":"test","definition":"testtttt"}}
+[
+	{
+		"word": "test",
+		"definition": "test"
+	},
+	{
+		"word": "test2",
+		"definition": "test"
+	}
+]

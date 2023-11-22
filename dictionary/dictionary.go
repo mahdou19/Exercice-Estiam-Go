@@ -4,6 +4,7 @@ package dictionary
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 )
@@ -25,58 +26,69 @@ func NewDictionary(filename string) *Dictionary {
 	}
 }
 
-func (d *Dictionary) loadEntries() error {
-	file, err := ioutil.ReadFile(d.filename)
-	if err != nil {
-		// Ignore error if file doesn't exist yet
-		if os.IsNotExist(err) {
-			return nil
+func (d *Dictionary) loadEntries() {
+	_, err := os.Stat(d.filename)
+	if os.IsNotExist(err) {
+		file, err := os.Create(d.filename)
+		if err != nil {
+			fmt.Println("Erreur créatsion fichier:", err)
+			return
 		}
-		return err
+		defer file.Close()
+		return
+	} else if err != nil {
+		fmt.Println("Erreur:", err)
+		return
 	}
 
-	err = json.Unmarshal(file, &d.entries)
+	data, err := ioutil.ReadFile(d.filename)
 	if err != nil {
-		return err
+		fmt.Println("Erreur:", err)
+		return
 	}
 
-	return nil
+	if len(data) == 0 {
+		return
+	}
+
+	var entries []Entry
+	if err := json.Unmarshal(data, &entries); err != nil {
+		fmt.Println("Erreur dans les données:", err)
+		return
+	}
+
+	for _, entry := range entries {
+		d.Add(entry.Word, entry.Definition)
+	}
 }
 
 func (d *Dictionary) saveEntries() error {
-	data, err := json.Marshal(d.entries)
+
+	entries := make([]Entry, 0, len(d.entries))
+	for _, entry := range d.entries {
+		entries = append(entries, entry)
+	}
+
+	data, err := json.MarshalIndent(entries, "", "	")
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(d.filename, data, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(d.filename, data, 0644)
 }
 
 func (d *Dictionary) Add(word string, definition string) {
-	err := d.loadEntries()
-	if err != nil {
-		panic(err)
-	}
+	entry := Entry{Word: word, Definition: definition}
+	d.entries[word] = entry
 
-	d.entries[word] = Entry{Word: word, Definition: definition}
-
-	err = d.saveEntries()
+	err := d.saveEntries()
 	if err != nil {
-		panic(err)
+		fmt.Println("Erreur lors de la sauvegarde des entrées :", err)
 	}
 }
 
 func (d *Dictionary) List() []Entry {
-	err := d.loadEntries()
-	if err != nil {
-		panic(err)
-	}
-
+	d.loadEntries()
 	var entryList []Entry
 	for _, entry := range d.entries {
 		entryList = append(entryList, entry)
@@ -85,24 +97,16 @@ func (d *Dictionary) List() []Entry {
 }
 
 func (d *Dictionary) Remove(word string) {
-	err := d.loadEntries()
-	if err != nil {
-		panic(err)
-	}
+	d.loadEntries()
 
 	delete(d.entries, word)
 
-	err = d.saveEntries()
-	if err != nil {
-		panic(err)
-	}
+	d.saveEntries()
+
 }
 
 func (d *Dictionary) Get(word string) (Entry, error) {
-	err := d.loadEntries()
-	if err != nil {
-		return Entry{}, err
-	}
+	d.loadEntries()
 
 	entry, found := d.entries[word]
 	if !found {

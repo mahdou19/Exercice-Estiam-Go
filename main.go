@@ -1,85 +1,79 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"estiam/dictionary"
 	"fmt"
-	"os"
+	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
-
-	scanner := bufio.NewScanner(os.Stdin)
+	r := mux.NewRouter()
 	dict := dictionary.NewDictionary("./data.json")
 
-	for {
-		fmt.Print("Entrez quelque chose : (add, define, list ou remove) : ")
-		scanner.Scan()
-		entreeUtilisateur := scanner.Text()
+	r.HandleFunc("/add", func(w http.ResponseWriter, r *http.Request) {
+		actionAdd(dict, w, r)
+	}).Methods("POST")
 
-		if entreeUtilisateur == "add" {
-			actionAdd(dict, scanner)
+	r.HandleFunc("/define/{word}", func(w http.ResponseWriter, r *http.Request) {
+		actionDefine(dict, w, r)
+	}).Methods("GET")
 
-		} else if entreeUtilisateur == "define" {
-			actionDefine(dict, scanner)
+	r.HandleFunc("/remove/{word}", func(w http.ResponseWriter, r *http.Request) {
+		actionRemove(dict, w, r)
+	}).Methods("DELETE")
 
-		} else if entreeUtilisateur == "list" {
-			actionList(dict)
-		} else if entreeUtilisateur == "remove" {
-			actionRemove(dict, scanner)
-		} else {
-			fmt.Println("Entrez Non valide ! Choisisser dans cette liste: (add, define, list ou remove) : ")
-		}
+	r.HandleFunc("/list", func(w http.ResponseWriter, r *http.Request) {
+		actionList(dict, w, r)
+	}).Methods("GET")
+
+	http.Handle("/", r)
+
+	fmt.Println("Server listening on :3000...")
+	http.ListenAndServe(":3000", nil)
+}
+
+func actionAdd(d *dictionary.Dictionary, w http.ResponseWriter, r *http.Request) {
+	var entry dictionary.Entry
+	err := json.NewDecoder(r.Body).Decode(&entry)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
+	d.Add(entry.Word, entry.Definition)
+	response := map[string]string{"message": "Entrée ajoutée avec succès"}
+	json.NewEncoder(w).Encode(response)
 }
 
-func actionAdd(d *dictionary.Dictionary, scanner *bufio.Scanner) {
-	fmt.Print("Entrez un mot : ")
-	scanner.Scan()
-	word := scanner.Text()
-	fmt.Print("Entrez une definition du mot entrer précédemment : ")
-	scanner.Scan()
-	definition := scanner.Text()
-	fmt.Println("La definition du mot ", word, "est : ", definition)
-
-	d.Add(word, definition)
-	fmt.Println("le mot < ", word, " > est ajouté.")
-}
-
-func actionDefine(d *dictionary.Dictionary, scanner *bufio.Scanner) {
-	fmt.Print("Entrez le mot à cherché : ")
-	scanner.Scan()
-	word := scanner.Text()
+func actionDefine(d *dictionary.Dictionary, w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	word := vars["word"]
 
 	entry, err := d.Get(word)
 	if err != nil {
-		fmt.Println("Word not found.")
+		http.Error(w, "Mot non trouvé", http.StatusNotFound)
 		return
 	}
 
-	fmt.Printf("La définition est : %s\n", entry.Definition)
-
+	json.NewEncoder(w).Encode(entry)
 }
 
-func actionRemove(d *dictionary.Dictionary, scanner *bufio.Scanner) {
-	fmt.Print("Entrer le mot à supprimé du dictionnaire : ")
-	scanner.Scan()
-	word := scanner.Text()
+func actionRemove(d *dictionary.Dictionary, w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	word := vars["word"]
 
 	d.Remove(word)
-	fmt.Printf("%s estsupprimé du dictionnaire.\n", word)
+	response := map[string]string{"message": "Supprimé avec succès"}
+	json.NewEncoder(w).Encode(response)
 }
 
-func actionList(d *dictionary.Dictionary) {
-	entries := d.List()
-	if len(entries) == 0 {
-		fmt.Println("Le dictionaire est vide !")
-		return
-	}
+func actionList(d *dictionary.Dictionary, w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println("Liste du dictionaire")
-	for _, entry := range entries {
-		fmt.Printf("- %s: %s \n", entry.Word, entry.Definition)
-	}
+	entries := d.List()
+	fmt.Println("Liste des entrées du dictionnaire :", entries)
+
+	json.NewEncoder(w).Encode(entries)
 }
