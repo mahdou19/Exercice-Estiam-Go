@@ -10,7 +10,7 @@ import (
 func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
-	dict := dictionary.NewDictionary()
+	dict := dictionary.NewDictionary("./data.json")
 
 	for {
 		fmt.Print("Entrez quelque chose : (add, define, list ou remove) : ")
