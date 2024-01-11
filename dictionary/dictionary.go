@@ -3,7 +3,6 @@ package dictionary
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -31,19 +30,19 @@ func (d *Dictionary) loadEntries() {
 	if os.IsNotExist(err) {
 		file, err := os.Create(d.filename)
 		if err != nil {
-			fmt.Println("Erreur créatsion fichier:", err)
+			fmt.Println("Error file created:", err)
 			return
 		}
 		defer file.Close()
 		return
 	} else if err != nil {
-		fmt.Println("Erreur:", err)
+		fmt.Println("Error:", err)
 		return
 	}
 
 	data, err := ioutil.ReadFile(d.filename)
 	if err != nil {
-		fmt.Println("Erreur:", err)
+		fmt.Println("Error:", err)
 		return
 	}
 
@@ -53,10 +52,9 @@ func (d *Dictionary) loadEntries() {
 
 	var entries []Entry
 	if err := json.Unmarshal(data, &entries); err != nil {
-		fmt.Println("Erreur dans les données:", err)
+		fmt.Println("Error Data:", err)
 		return
 	}
-
 	for _, entry := range entries {
 		d.Add(entry.Word, entry.Definition)
 	}
@@ -68,23 +66,17 @@ func (d *Dictionary) saveEntries() error {
 	for _, entry := range d.entries {
 		entries = append(entries, entry)
 	}
-
 	data, err := json.MarshalIndent(entries, "", "	")
 	if err != nil {
 		return err
 	}
-
 	return ioutil.WriteFile(d.filename, data, 0644)
 }
 
-func (d *Dictionary) Add(word string, definition string) {
+func (d *Dictionary) Add(word string, definition string) error {
 	entry := Entry{Word: word, Definition: definition}
 	d.entries[word] = entry
-
-	err := d.saveEntries()
-	if err != nil {
-		fmt.Println("Erreur lors de la sauvegarde des entrées :", err)
-	}
+	return d.saveEntries()
 }
 
 func (d *Dictionary) List() []Entry {
@@ -98,19 +90,13 @@ func (d *Dictionary) List() []Entry {
 
 func (d *Dictionary) Remove(word string) {
 	d.loadEntries()
-
 	delete(d.entries, word)
-
 	d.saveEntries()
 
 }
 
 func (d *Dictionary) Get(word string) (Entry, error) {
 	d.loadEntries()
-
-	entry, found := d.entries[word]
-	if !found {
-		return Entry{}, errors.New("Mot non trouvé")
-	}
+	entry := d.entries[word]
 	return entry, nil
 }

@@ -52,7 +52,7 @@ func main() {
 	http.ListenAndServe(":3000", nil)
 }
 
-func actionAdd(d *dictionary.Dictionary, w http.ResponseWriter, r *http.Request) {
+func actionAdd(dict *dictionary.Dictionary, w http.ResponseWriter, r *http.Request) {
 	var entry dictionary.Entry
 	err := json.NewDecoder(r.Body).Decode(&entry)
 	if err != nil {
@@ -67,7 +67,13 @@ func actionAdd(d *dictionary.Dictionary, w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	d.Add(entry.Word, entry.Definition)
+	err = dict.Add(entry.Word, entry.Definition)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Println("Error adding entry:", err)
+		return
+	}
+
 	response := map[string]string{"message": "Entry added successfully"}
 	json.NewEncoder(w).Encode(response)
 }
@@ -76,9 +82,22 @@ func actionDefine(d *dictionary.Dictionary, w http.ResponseWriter, r *http.Reque
 	vars := mux.Vars(r)
 	word := vars["word"]
 
+	if len(word) < 3 {
+		http.Error(w, "Invalid word parameter", http.StatusBadRequest)
+		log.Println("Invalid word parameter")
+		return
+	}
+
 	entry, err := d.Get(word)
 	if err != nil {
+		http.Error(w, "Error", http.StatusNotFound)
+		log.Println("Error", err)
+		return
+	}
+
+	if entry.Word == "" {
 		http.Error(w, "Word not found", http.StatusNotFound)
+		log.Println("Word not found")
 		return
 	}
 
