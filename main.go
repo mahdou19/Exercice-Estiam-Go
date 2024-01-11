@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"estiam/dictionary"
+	"estiam/middleware"
 	"fmt"
 	"net/http"
 
@@ -11,6 +12,7 @@ import (
 
 func main() {
 	r := mux.NewRouter()
+	r.Use(middleware.LoggingMiddleware)
 	dict := dictionary.NewDictionary("./data.json")
 
 	r.HandleFunc("/add", func(w http.ResponseWriter, r *http.Request) {
