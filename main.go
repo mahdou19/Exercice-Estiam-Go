@@ -13,6 +13,7 @@ import (
 func main() {
 	r := mux.NewRouter()
 	r.Use(middleware.LoggingMiddleware)
+	r.Use(middleware.AuthenticationMiddleware)
 	dict := dictionary.NewDictionary("./data.json")
 
 	r.HandleFunc("/add", func(w http.ResponseWriter, r *http.Request) {
