@@ -61,13 +61,8 @@ func actionAdd(dict *dictionary.Dictionary, w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if len(entry.Word) < 3 || len(entry.Definition) < 5 {
-		http.Error(w, "Data does not meet validation rules", http.StatusBadRequest)
-		log.Println("Data validation error")
-		return
-	}
-
 	err = dict.Add(entry.Word, entry.Definition)
+	print("errr")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		log.Println("Error adding entry:", err)

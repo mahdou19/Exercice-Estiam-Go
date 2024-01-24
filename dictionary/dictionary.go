@@ -3,6 +3,7 @@ package dictionary
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -74,9 +75,15 @@ func (d *Dictionary) saveEntries() error {
 }
 
 func (d *Dictionary) Add(word string, definition string) error {
+	if len(word) < 3 || len(definition) < 5 {
+		return errors.New("Data does not meet validation rules")
+	}
+
 	entry := Entry{Word: word, Definition: definition}
 	d.entries[word] = entry
+
 	return d.saveEntries()
+
 }
 
 func (d *Dictionary) List() []Entry {
@@ -97,6 +104,9 @@ func (d *Dictionary) Remove(word string) {
 
 func (d *Dictionary) Get(word string) (Entry, error) {
 	d.loadEntries()
-	entry := d.entries[word]
+	entry, found := d.entries[word]
+	if !found {
+		return Entry{}, errors.New("Word not found")
+	}
 	return entry, nil
 }
