@@ -2,11 +2,11 @@
 package dictionary
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io/ioutil"
-	"os"
+	"context"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Entry struct {
@@ -15,98 +15,65 @@ type Entry struct {
 }
 
 type Dictionary struct {
-	filename string
-	entries  map[string]Entry
+	collection *mongo.Collection
 }
 
-func NewDictionary(filename string) *Dictionary {
+func NewDictionary(connectionString, dbName, collectionName string) (*Dictionary, error) {
+	clientOptions := options.Client().ApplyURI(connectionString)
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	collection := client.Database(dbName).Collection(collectionName)
+
 	return &Dictionary{
-		filename: filename,
-		entries:  make(map[string]Entry),
-	}
-}
-
-func (d *Dictionary) loadEntries() {
-	_, err := os.Stat(d.filename)
-	if os.IsNotExist(err) {
-		file, err := os.Create(d.filename)
-		if err != nil {
-			fmt.Println("Error file created:", err)
-			return
-		}
-		defer file.Close()
-		return
-	} else if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	data, err := ioutil.ReadFile(d.filename)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	if len(data) == 0 {
-		return
-	}
-
-	var entries []Entry
-	if err := json.Unmarshal(data, &entries); err != nil {
-		fmt.Println("Error Data:", err)
-		return
-	}
-	for _, entry := range entries {
-		d.Add(entry.Word, entry.Definition)
-	}
-}
-
-func (d *Dictionary) saveEntries() error {
-
-	entries := make([]Entry, 0, len(d.entries))
-	for _, entry := range d.entries {
-		entries = append(entries, entry)
-	}
-	data, err := json.MarshalIndent(entries, "", "	")
-	if err != nil {
-		return err
-	}
-	return ioutil.WriteFile(d.filename, data, 0644)
+		collection: collection,
+	}, nil
 }
 
 func (d *Dictionary) Add(word string, definition string) error {
-	if len(word) < 3 || len(definition) < 5 {
-		return errors.New("Data does not meet validation rules")
-	}
 
 	entry := Entry{Word: word, Definition: definition}
-	d.entries[word] = entry
 
-	return d.saveEntries()
+	ctx := context.Background()
+	filter := bson.M{"word": word}
+	update := bson.M{"$set": entry}
 
+	_, err := d.collection.UpdateOne(ctx, filter, update, options.Update().SetUpsert(true))
+	return err
 }
+func (d *Dictionary) List() ([]Entry, error) {
+	cursor, err := d.collection.Find(context.Background(), bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
 
-func (d *Dictionary) List() []Entry {
-	d.loadEntries()
 	var entryList []Entry
-	for _, entry := range d.entries {
+	for cursor.Next(context.Background()) {
+		var entry Entry
+		if err := cursor.Decode(&entry); err != nil {
+			return nil, err
+		}
 		entryList = append(entryList, entry)
 	}
-	return entryList
+
+	return entryList, nil
 }
 
-func (d *Dictionary) Remove(word string) {
-	d.loadEntries()
-	delete(d.entries, word)
-	d.saveEntries()
+func (d *Dictionary) Remove(word string) error {
+	filter := bson.M{"word": word}
+	_, err := d.collection.DeleteOne(context.Background(), filter)
 
+	return err
 }
 
 func (d *Dictionary) Get(word string) (Entry, error) {
-	d.loadEntries()
-	entry, found := d.entries[word]
-	if !found {
-		return Entry{}, errors.New("Word not found")
-	}
-	return entry, nil
+	var entry Entry
+
+	filter := bson.M{"word": word}
+	err := d.collection.FindOne(context.Background(), filter).Decode(&entry)
+
+	return entry, err
 }
